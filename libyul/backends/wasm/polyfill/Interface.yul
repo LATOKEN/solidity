@@ -19,13 +19,13 @@
 // NOTE: This file is used to generate `ewasmPolyfills/Interface.h`.
 
 function address() -> z1, z2, z3, z4 {
-	eth.getAddress(12:i32)
+	env.get_address(12:i32)
 	z1, z2, z3, z4 := mload_address(0:i32)
 }
 
 function balance(x1, x2, x3, x4) -> z1, z2, z3, z4 {
 	mstore_address(0:i32, x1, x2, x3, x4)
-	eth.getExternalBalance(12:i32, 32:i32)
+	env.get_external_balance(12:i32, 32:i32)
 	z3 := i64.load(40:i32)
 	z4 := i64.load(32:i32)
 }
@@ -41,19 +41,18 @@ function chainid() -> z1, z2, z3, z4 {
 }
 
 function origin() -> z1, z2, z3, z4 {
-	eth.getTxOrigin(12:i32)
+	env.get_tx_origin(12:i32)
 	z1, z2, z3, z4 := mload_address(0:i32)
 }
 
 function caller() -> z1, z2, z3, z4 {
-	eth.getCaller(12:i32)
+	env.get_sender(12:i32)
 	z1, z2, z3, z4 := mload_address(0:i32)
 }
 
 function callvalue() -> z1, z2, z3, z4 {
-	eth.getCallValue(0:i32)
-	z3 := i64.load(8:i32)
-	z4 := i64.load(0:i32)
+	env.get_msgvalue(0:i32)
+	z1, z2, z3, z4 := mload_internal(0:i32)
 }
 
 function calldataload(x1, x2, x3, x4) -> z1, z2, z3, z4 {
@@ -62,29 +61,33 @@ function calldataload(x1, x2, x3, x4) -> z1, z2, z3, z4 {
 }
 
 function calldatasize() -> z1, z2, z3, z4 {
-	z4 := i64.extend_i32_u(eth.getCallDataSize())
+	z4 := i64.extend_i32_u(env.get_call_size())
 }
 
 function calldatacopy(x1, x2, x3, x4, y1, y2, y3, y4, z1, z2, z3, z4) {
-	let cds:i32 := eth.getCallDataSize()
+	let cds:i32 := env.get_call_size()
 	let destination:i32 := u256_to_i32(x1, x2, x3, x4)
-	let offset:i32 := u256_to_i32(y1, y2, y3, y4)
+	let offset_from:i32 := u256_to_i32(y1, y2, y3, y4)
 	let requested_size:i32 := u256_to_i32(z1, z2, z3, z4)
 	// overflow?
-	if i32.gt_u(offset, i32.sub(0xffffffff:i32, requested_size)) {
-		eth.revert(0:i32, 0:i32)
+	if i32.gt_u(offset_from, i32.sub(0xffffffff:i32, requested_size)) {
+		env.set_return(0:i32, 0:i32)
+
+        env.system_halt(1:i32)
 	}
 
-	let available_size:i32 := i32.sub(cds, offset)
-	if i32.gt_u(offset, cds) {
+	let available_size:i32 := i32.sub(cds, offset_from)
+	if i32.gt_u(offset_from, cds) {
 		available_size := 0:i32
 	}
 
 	if i32.gt_u(available_size, 0:i32) {
-		eth.callDataCopy(
-			destination,
-			offset,
-			available_size
+        let offset_to:i32 := i32.add(offset_from, available_size)
+
+        env.copy_call_value(
+			offset_from,
+			offset_to,
+			destination
 		)
 	}
 
@@ -95,11 +98,11 @@ function calldatacopy(x1, x2, x3, x4, y1, y2, y3, y4, z1, z2, z3, z4) {
 
 // Needed?
 function codesize() -> z1, z2, z3, z4 {
-	z4 := i64.extend_i32_u(eth.getCodeSize())
+	z4 := i64.extend_i32_u(env.get_code_size())
 }
 
 function codecopy(x1, x2, x3, x4, y1, y2, y3, y4, z1, z2, z3, z4) {
-	eth.codeCopy(
+	env.copy_code_value(
 		to_internal_i32ptr(x1, x2, x3, x4),
 		u256_to_i32(y1, y2, y3, y4),
 		u256_to_i32(z1, z2, z3, z4)
@@ -112,14 +115,15 @@ function datacopy(x1, x2, x3, x4, y1, y2, y3, y4, z1, z2, z3, z4) {
 }
 
 function gasprice() -> z1, z2, z3, z4 {
-	eth.getTxGasPrice(0:i32)
+	env.get_tx_gas_price(0:i32)
 	z3 := i64.load(8:i32)
 	z4 := i64.load(0:i32)
 }
 
 function extcodesize_internal(x1, x2, x3, x4) -> r:i32 {
 	mstore_address(0:i32, x1, x2, x3, x4)
-	r := eth.getExternalCodeSize(12:i32)
+	env.get_extcodesize(12:i32, 0:i32)
+	r := i32.load(0:i32)
 }
 
 function extcodesize(x1, x2, x3, x4) -> z1, z2, z3, z4 {
@@ -135,15 +139,15 @@ function extcodecopy(a1, a2, a3, a4, p1, p2, p3, p4, o1, o2, o3, o4, l1, l2, l3,
 	mstore_address(0:i32, a1, a2, a3, a4)
 	let codeOffset:i32 := u256_to_i32(o1, o2, o3, o4)
 	let codeLength:i32 := u256_to_i32(l1, l2, l3, l4)
-	eth.externalCodeCopy(12:i32, to_internal_i32ptr(p1, p2, p3, p4), codeOffset, codeLength)
+	env.externalCodeCopy(12:i32, to_internal_i32ptr(p1, p2, p3, p4), codeOffset, codeLength)
 }
 
 function returndatasize() -> z1, z2, z3, z4 {
-	z4 := i64.extend_i32_u(eth.getReturnDataSize())
+	z4 := i64.extend_i32_u(env.get_return_size())
 }
 
 function returndatacopy(x1, x2, x3, x4, y1, y2, y3, y4, z1, z2, z3, z4) {
-	eth.returnDataCopy(
+	env.copy_return_value(
 		to_internal_i32ptr(x1, x2, x3, x4),
 		u256_to_i32(y1, y2, y3, y4),
 		u256_to_i32(z1, z2, z3, z4)
@@ -151,27 +155,28 @@ function returndatacopy(x1, x2, x3, x4, y1, y2, y3, y4, z1, z2, z3, z4) {
 }
 
 function blockhash(x1, x2, x3, x4) -> z1, z2, z3, z4 {
-	let r:i32 := eth.getBlockHash(u256_to_i64(x1, x2, x3, x4), 0:i32)
-	if i32.eqz(r) {
-		z1, z2, z3, z4 := mload_internal(0:i32)
-	}
+	i64.store(0:i32, u256_to_i64(x1, x2, x3, x4))
+    env.get_block_hash(0:i32, 0:i32)
+	z1, z2, z3, z4 := mload_internal(0:i32)
 }
 
 function coinbase() -> z1, z2, z3, z4 {
-	eth.getBlockCoinbase(12:i32)
+	env.get_block_coinbase_address(12:i32)
 	z1, z2, z3, z4 := mload_address(0:i32)
 }
 
 function timestamp() -> z1, z2, z3, z4 {
-	z4 := eth.getBlockTimestamp()
+	env.get_block_timestamp(0:i32)
+	z4 := i64.load(0:i32)
 }
 
 function number() -> z1, z2, z3, z4 {
-	z4 := eth.getBlockNumber()
+	env.get_block_number(0:i32)
+	z4 := i64.load(0:i32)
 }
 
 function difficulty() -> z1, z2, z3, z4 {
-	eth.getBlockDifficulty(0:i32)
+	env.get_block_difficulty(0:i32)
 	z1 := i64.load(24:i32)
 	z2 := i64.load(16:i32)
 	z3 := i64.load(8:i32)
@@ -179,7 +184,9 @@ function difficulty() -> z1, z2, z3, z4 {
 }
 
 function gaslimit() -> z1, z2, z3, z4 {
-	z4 := eth.getBlockGasLimit()
+	env.get_block_gas_limit(0:i32)
+	z3 := i64.load(8:i32)
+	z4 := i64.load(0:i32)
 }
 
 function mload(x1, x2, x3, x4) -> z1, z2, z3, z4 {
@@ -198,22 +205,24 @@ function msize() -> z1, z2, z3, z4 {
 
 function sload(x1, x2, x3, x4) -> z1, z2, z3, z4 {
 	mstore_internal(0:i32, x1, x2, x3, x4)
-	eth.storageLoad(0:i32, 32:i32)
+	env.load_storage(0:i32, 32:i32)
 	z1, z2, z3, z4 := mload_internal(32:i32)
 }
 
 function sstore(x1, x2, x3, x4, y1, y2, y3, y4) {
 	mstore_internal(0:i32, x1, x2, x3, x4)
 	mstore_internal(32:i32, y1, y2, y3, y4)
-	eth.storageStore(0:i32, 32:i32)
+	env.save_storage(0:i32, 32:i32)
 }
 
 function gas() -> z1, z2, z3, z4 {
-	z4 := eth.getGasLeft()
+	env.get_gas_left(0:i32)
+	z3 := i64.load(8:i32)
+	z4 := i64.load(0:i32)
 }
 
 function log0(p1, p2, p3, p4, s1, s2, s3, s4) {
-	eth.log(
+	env.write_log(
 		to_internal_i32ptr(p1, p2, p3, p4),
 		u256_to_i32(s1, s2, s3, s4),
 		0:i32, 0:i32, 0:i32, 0:i32, 0:i32
@@ -224,7 +233,7 @@ function log1(
 	p1, p2, p3, p4, s1, s2, s3, s4,
 	t1_1, t1_2, t1_3, t1_4
 ) {
-	eth.log(
+	env.write_log(
 		to_internal_i32ptr(p1, p2, p3, p4),
 		u256_to_i32(s1, s2, s3, s4),
 		1:i32,
@@ -238,7 +247,7 @@ function log2(
 	t1_1, t1_2, t1_3, t1_4,
 	t2_1, t2_2, t2_3, t2_4
 ) {
-	eth.log(
+	env.write_log(
 		to_internal_i32ptr(p1, p2, p3, p4),
 		u256_to_i32(s1, s2, s3, s4),
 		2:i32,
@@ -254,7 +263,7 @@ function log3(
 	t2_1, t2_2, t2_3, t2_4,
 	t3_1, t3_2, t3_3, t3_4
 ) {
-	eth.log(
+	env.write_log(
 		to_internal_i32ptr(p1, p2, p3, p4),
 		u256_to_i32(s1, s2, s3, s4),
 		3:i32,
@@ -272,7 +281,7 @@ function log4(
 	t3_1, t3_2, t3_3, t3_4,
 	t4_1, t4_2, t4_3, t4_4,
 ) {
-	eth.log(
+	env.write_log(
 		to_internal_i32ptr(p1, p2, p3, p4),
 		u256_to_i32(s1, s2, s3, s4),
 		4:i32,
@@ -291,7 +300,7 @@ function create(
 	let v1, v2 := u256_to_u128(x1, x2, x3, x4)
 	mstore_internal(0:i32, 0, 0, v1, v2)
 
-	let r:i32 := eth.create(0:i32, to_internal_i32ptr(y1, y2, y3, y4), u256_to_i32(z1, z2, z3, z4), 32:i32)
+	let r:i32 := env.create(0:i32, to_internal_i32ptr(y1, y2, y3, y4), u256_to_i32(z1, z2, z3, z4), 32:i32)
 	if i32.eqz(r) {
 		a1, a2, a3, a4 := mload_internal(32:i32)
 	}
@@ -306,13 +315,11 @@ function call(
 	f1, f2, f3, f4,
 	g1, g2, g3, g4
 ) -> x1, x2, x3, x4 {
-	let g := u256_to_i64(a1, a2, a3, a4)
 	mstore_address(0:i32, b1, b2, b3, b4)
+    i64.store(0:i32, u256_to_i64(a1, a2, a3, a4))
+	mstore_internal(32:i32, c1, c2, c3, c4)
 
-	let v1, v2 := u256_to_u128(c1, c2, c3, c4)
-	mstore_internal(32:i32, 0, 0, v1, v2)
-
-	x4 := i64.extend_i32_u(eth.call(g, 12:i32, 32:i32, to_internal_i32ptr(d1, d2, d3, d4), u256_to_i32(e1, e2, e3, e4)))
+	x4 := i64.extend_i32_u(env.invoke_contract(12:i32, u256_to_i32(e1, e2, e3, e4), to_internal_i32ptr(d1, d2, d3, d4), 32:i32, 0:i32))
 }
 
 function callcode(
@@ -325,16 +332,15 @@ function callcode(
 	g1, g2, g3, g4
 ) -> x1, x2, x3, x4 {
 	mstore_address(0:i32, b1, b2, b3, b4)
+    i64.store(0:i32, u256_to_i64(a1, a2, a3, a4))
+	mstore_internal(32:i32, c1, c2, c3, c4)
 
-	let v1, v2 := u256_to_u128(c1, c2, c3, c4)
-	mstore_internal(32:i32, 0, 0, v1, v2)
-
-	x4 := i64.extend_i32_u(eth.callCode(
-		u256_to_i64(a1, a2, a3, a4),
+	x4 := i64.extend_i32_u(env.invoke_code_contract(
 		12:i32,
+        u256_to_i32(e1, e2, e3, e4),
+        to_internal_i32ptr(d1, d2, d3, d4),
 		32:i32,
-		to_internal_i32ptr(d1, d2, d3, d4),
-		u256_to_i32(e1, e2, e3, e4)
+		0:i32
 	))
 }
 
@@ -347,12 +353,15 @@ function delegatecall(
 	f1, f2, f3, f4
 ) -> x1, x2, x3, x4 {
 	mstore_address(0:i32, b1, b2, b3, b4)
+    i64.store(0:i32, u256_to_i64(a1, a2, a3, a4))
+	mstore_internal(32:i32, 0, 0, 0, 0)
 
-	x4 := i64.extend_i32_u(eth.callDelegate(
-		u256_to_i64(a1, a2, a3, a4),
+	x4 := i64.extend_i32_u(env.invoke_delegate_contract(
 		12:i32,
+        u256_to_i32(d1, d2, d3, d4),
 		to_internal_i32ptr(c1, c2, c3, c4),
-		u256_to_i32(d1, d2, d3, d4)
+		32:i32,
+        0:i32
 	))
 }
 
@@ -365,12 +374,15 @@ function staticcall(
 	f1, f2, f3, f4
 ) -> x1, x2, x3, x4 {
 	mstore_address(0:i32, b1, b2, b3, b4)
+    i64.store(0:i32, u256_to_i64(a1, a2, a3, a4))
+	mstore_internal(32:i32, 0, 0, 0, 0)
 
-	x4 := i64.extend_i32_u(eth.callStatic(
-		u256_to_i64(a1, a2, a3, a4),
+	x4 := i64.extend_i32_u(env.invoke_static_contract(
 		12:i32,
+        u256_to_i32(d1, d2, d3, d4),
 		to_internal_i32ptr(c1, c2, c3, c4),
-		u256_to_i32(d1, d2, d3, d4)
+		32:i32,
+        0:i32
 	))
 }
 
@@ -387,21 +399,25 @@ function create2(
 function selfdestruct(a1, a2, a3, a4) {
 	mstore_address(0:i32, a1, a2, a3, a4)
 	// In EVM, addresses are padded to 32 bytes, so discard the first 12.
-	eth.selfDestruct(12:i32)
+	env.selfDestruct(12:i32)
 }
 
 function return(x1, x2, x3, x4, y1, y2, y3, y4) {
-	eth.finish(
+	env.set_return(
 		to_internal_i32ptr(x1, x2, x3, x4),
 		u256_to_i32(y1, y2, y3, y4)
 	)
+
+    env.system_halt(0:i32)
 }
 
 function revert(x1, x2, x3, x4, y1, y2, y3, y4) {
-	eth.revert(
+	env.set_return(
 		to_internal_i32ptr(x1, x2, x3, x4),
 		u256_to_i32(y1, y2, y3, y4)
 	)
+
+    env.system_halt(0:i32)
 }
 
 function invalid() {
@@ -409,5 +425,7 @@ function invalid() {
 }
 
 function stop() {
-	eth.finish(0:i32, 0:i32)
+	env.set_return(0:i32, 0:i32)
+
+    env.system_halt(0:i32)
 }

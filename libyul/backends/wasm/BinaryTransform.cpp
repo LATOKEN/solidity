@@ -661,11 +661,11 @@ bytes BinaryTransform::globalSection(vector<wasm::GlobalVariableDeclaration> con
 
 bytes BinaryTransform::exportSection(map<string, size_t> const& _functionIDs)
 {
-	bool hasMain = _functionIDs.count("main");
+	bool hasMain = _functionIDs.count("start");
 	bytes result = lebEncode(hasMain ? 2 : 1);
 	result += encodeName("memory") + toBytes(Export::Memory) + lebEncode(0);
 	if (hasMain)
-		result += encodeName("main") + toBytes(Export::Function) + lebEncode(_functionIDs.at("main"));
+		result += encodeName("start") + toBytes(Export::Function) + lebEncode(_functionIDs.at("start"));
 	return makeSection(Section::EXPORT, move(result));
 }
 

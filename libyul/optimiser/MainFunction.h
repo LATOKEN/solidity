@@ -16,7 +16,7 @@
 */
 // SPDX-License-Identifier: GPL-3.0
 /**
- * Changes the topmost block to be a function with a specific name ("main") which has no
+ * Changes the topmost block to be a function with a specific name ("start") which has no
  * inputs nor outputs.
  */
 

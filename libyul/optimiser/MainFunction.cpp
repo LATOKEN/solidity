@@ -16,7 +16,7 @@
 */
 // SPDX-License-Identifier: GPL-3.0
 /**
- * Changes the topmost block to be a function with a specific name ("main") which has no
+ * Changes the topmost block to be a function with a specific name ("start") which has no
  * inputs nor outputs.
  */
 
@@ -40,15 +40,15 @@ void MainFunction::operator()(Block& _block)
 	for (size_t i = 1; i < _block.statements.size(); ++i)
 		assertThrow(holds_alternative<FunctionDefinition>(_block.statements.at(i)), OptimizerException, "");
 	/// @todo this should handle scopes properly and instead of an assertion it should rename the conflicting function
-	assertThrow(NameCollector(_block).names().count("main"_yulstring) == 0, OptimizerException, "");
+	assertThrow(NameCollector(_block).names().count("start"_yulstring) == 0, OptimizerException, "");
 
 	Block& block = std::get<Block>(_block.statements[0]);
-	FunctionDefinition main{
+	FunctionDefinition start{
 		block.debugData,
-		"main"_yulstring,
+		"start"_yulstring,
 		{},
 		{},
 		std::move(block)
 	};
-	_block.statements[0] = std::move(main);
+	_block.statements[0] = std::move(start);
 }

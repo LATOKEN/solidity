@@ -144,8 +144,8 @@ wasm::Expression WasmCodeTransform::operator()(yul::FunctionCall const& _call)
 	{
 		if (_call.functionName.name.str().substr(0, 6) == "debug.")
 			importBuiltinFunction(builtin, "debug", builtin->name.str().substr(6), builtin->name.str());
-		else if (_call.functionName.name.str().substr(0, 4) == "eth.")
-			importBuiltinFunction(builtin, "ethereum", builtin->name.str().substr(4), builtin->name.str());
+		else if (_call.functionName.name.str().substr(0, 4) == "env.")
+			importBuiltinFunction(builtin, "env", builtin->name.str().substr(4), builtin->name.str());
 		else
 		{
 			vector<wasm::Expression> arguments;

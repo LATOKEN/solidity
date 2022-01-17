@@ -19,6 +19,7 @@
 // NOTE: This file is used to generate `ewasmPolyfills/Keccak.h`.
 
 function keccak256(x1, x2, x3, x4, y1, y2, y3, y4) -> z1, z2, z3, z4 {
-	// TODO implement
-	unreachable()
+	env.crypto_keccak256(to_internal_i32ptr(x1, x2, x3, x4), u256_to_i32(y1, y2, y3, y4), 64:i32)
+
+    z1, z2, z3, z4 := mload_internal(64:i32)
 }

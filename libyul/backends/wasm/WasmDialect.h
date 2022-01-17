@@ -50,7 +50,7 @@ struct WasmDialect: public Dialect
 	BuiltinFunction const* equalityFunction(YulString _type) const override;
 	BuiltinFunction const* booleanNegationFunction() const override { return builtin("i32.eqz"_yulstring); }
 
-	std::set<YulString> fixedFunctionNames() const override { return {"main"_yulstring}; }
+	std::set<YulString> fixedFunctionNames() const override { return {"start"_yulstring}; }
 
 	static WasmDialect const& instance();
 

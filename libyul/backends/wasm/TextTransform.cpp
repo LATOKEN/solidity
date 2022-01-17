@@ -78,10 +78,10 @@ string TextTransform::run(wasm::Module const& _module)
 	// allocate one 64k page of memory and make it available to the Ethereum client
 	ret += "    (memory $memory (export \"memory\") 1)\n";
 	for (auto const& f: _module.functions)
-		if (f.name == "main")
+		if (f.name == "start")
 		{
-			// export the main function
-			ret += "    (export \"main\" (func $main))\n";
+			// export the start function
+			ret += "    (export \"start\" (func $start))\n";
 			break;
 		}
 

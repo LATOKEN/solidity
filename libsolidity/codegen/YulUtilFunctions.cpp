@@ -331,14 +331,19 @@ string YulUtilFunctions::shiftLeftFunction(size_t _numBits)
 			Whiskers(R"(
 			function <functionName>(value) -> newValue {
 				newValue :=
-				<?hasShifts>
-					shl(<numBits>, value)
-				<!hasShifts>
-					mul(value, <multiplier>)
-				</hasShifts>
+				<?needShifting>
+					<?hasShifts>
+						shl(<numBits>, value)
+					<!hasShifts>
+						mul(value, <multiplier>)
+					</hasShifts>
+				<!needShifting>
+					value
+				</needShifting>
 			}
 			)")
 			("functionName", functionName)
+			("needShifting", _numBits > 0)
 			("numBits", to_string(_numBits))
 			("hasShifts", m_evmVersion.hasBitwiseShifting())
 			("multiplier", toCompactHexWithPrefix(u256(1) << _numBits))
@@ -380,14 +385,19 @@ string YulUtilFunctions::shiftRightFunction(size_t _numBits)
 			Whiskers(R"(
 			function <functionName>(value) -> newValue {
 				newValue :=
-				<?hasShifts>
-					shr(<numBits>, value)
-				<!hasShifts>
-					div(value, <multiplier>)
-				</hasShifts>
+				<?needShifting>
+					<?hasShifts>
+						shr(<numBits>, value)
+					<!hasShifts>
+						div(value, <multiplier>)
+					</hasShifts>
+				<!needShifting>
+					value
+				</needShifting>
 			}
 			)")
 			("functionName", functionName)
+			("needShifting", _numBits > 0)
 			("hasShifts", m_evmVersion.hasBitwiseShifting())
 			("numBits", to_string(_numBits))
 			("multiplier", toCompactHexWithPrefix(u256(1) << _numBits))
